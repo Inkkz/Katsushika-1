@@ -45,6 +45,10 @@ export class Database {
         await this.getGroup(jid)
         await this.group.updateOne({ jid }, { $set: { [field]: update } })
     }
+    
+    public removeUser = async (jid: string): Promise<void> => {
+        await this.user.deleteOne({ jid })
+    }
 
     public getSession = async (sessionId: string): Promise<TSessionModel | null> =>
         await this.session.findOne({ sessionId })
