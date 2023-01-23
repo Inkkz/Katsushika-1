@@ -14,10 +14,10 @@ export default class extends BaseCommand {
     public override execute = async (M: Message, { flags }: IArgs): Promise<void> => {
         const features = Object.keys(GroupFeatures) as (keyof typeof GroupFeatures)[]
         if (!flags.length) {
-            const sections: proto.ISection[] = []
-            let text = '🚀 *Available Features* 🚀'
+            const sections: proto.Message.ListMessage.ISection[] = []
+            let text = '🍁 *Available Features*'
             for (const feature of features) {
-                const rows: proto.IRow[] = []
+                const rows: proto.Message.ListMessage.IRow[] = []
                 rows.push(
                     {
                         title: `Enable ${this.client.utils.capitalize(feature)}`,
@@ -29,7 +29,7 @@ export default class extends BaseCommand {
                     }
                 )
                 sections.push({ title: this.client.utils.capitalize(feature), rows })
-                text += `\n\n🚀 *Feature:* ${this.client.utils.capitalize(feature)}\n📑 *Description:* ${
+                text += `\n\n*Feature:* ${this.client.utils.capitalize(feature)} \n*Description:* ${
                     GroupFeatures[feature]
                 }`
             }
@@ -74,14 +74,10 @@ export default class extends BaseCommand {
                         action === 'true' ? 'Enabled' : 'Disabled'
                     }*`
                 )
-            if (feature === 'wild')
-                action === 'true'
-                    ? this.handler[feature].push(M.from)
-                    : this.handler[feature].splice(this.handler[feature].indexOf(M.from), 1)
             await this.client.DB.updateGroup(M.from, feature, action === 'true')
             return void M.reply(
                 `${action === 'true' ? '🟩' : '🟥'} *${this.client.utils.capitalize(feature)} is now ${
-                    action === 'true' ? 'Enabled.' : 'Disabled.'
+                    action === 'true' ? 'Enabled' : 'Disabled'
                 }*`
             )
         }
