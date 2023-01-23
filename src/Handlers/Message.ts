@@ -8,7 +8,7 @@ import { ICommand, IArgs } from '../Types'
 export class MessageHandler {
     constructor(private client: Client) {}
 
-    public groups! string[]
+    public groups!: string[]
     
     public handleMessage = async (M: Message): Promise<void> => {
         const { prefix } = this.client.config
