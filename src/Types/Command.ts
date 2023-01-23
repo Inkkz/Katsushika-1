@@ -30,6 +30,7 @@ interface ICommandConfig {
     dm?: boolean
     /**Cooldown of the command */
     cooldown?: number
+    adminRequired?: boolean
 }
 
 export type TCategory = 'dev' | 'coding' | 'nature' | 'educative' | 'general' | 'weeb' | 'utils' | 'fun' | 'moderation' | 'media' | 'category' | 'nsfw'
