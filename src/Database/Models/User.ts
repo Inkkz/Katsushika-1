@@ -21,4 +21,4 @@ export class User {
 
 export type TUserModel = User & Document
 
-export const userSchema = getModelForClass(UserSchema)
+export const userSchema = getModelForClass(User)
