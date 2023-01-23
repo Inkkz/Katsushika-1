@@ -17,4 +17,4 @@ export class Group {
 
 export type TGroupModel = Group & Document
 
-export const groupSchema = getModelForClass(GroupSchema)
+export const groupSchema = getModelForClass(Group)
