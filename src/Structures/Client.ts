@@ -9,7 +9,7 @@ import { Boom } from '@hapi/boom'
 import qr from 'qr-image'
 import { Utils } from '../lib'
 import { Database, Contact, Message, Server, AuthenticationFromDatabase } from '.'
-import { IConfig, client, IEvent, ICall } from '../Types'
+import { IConfig, client, IEvent } from '../Types'
 
 export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>) {
     private client!: client
@@ -203,7 +203,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
 }
 
 type Events = {
-    new_call: (call: { from: string }) => void
+    new_call: (call: WACallEvent) => void
     new_message: (M: Message) => void
     participants_update: (event: IEvent) => void
     new_group_joined: (group: { jid: string; subject: string }) => void
