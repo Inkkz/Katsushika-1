@@ -9,8 +9,8 @@ import {
     TGroupModel,
     TSessionModel,
     TUserModel,
-    UserSchema,
-    GroupSchema
+    User,
+    Group
 } from '../Database'
 import { Utils } from '../lib'
 
