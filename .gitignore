@@ -1,0 +1,16 @@
+node_modules
+dist
+chitoge_session.json
+session.json
+store.json
+multi_session.json
+.env
+test.js
+ttt.js
+index.js
+e.json
+app.yaml
+.gcloudignore
+.vscode/settings.json
+User.js
+Chitoge
