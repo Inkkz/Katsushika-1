@@ -30,9 +30,9 @@ export class Database {
 
     public updateUser = async (
         jid: string,
-        field: keyof UserSchema,
+        field: keyof User,
         method: 'inc' | 'set',
-        update: UserSchema[typeof field]
+        update: User[typeof field]
     ): Promise<void> => {
         await this.getUser(jid)
         await this.user.updateOne({ jid }, { [`$${method}`]: { [field]: update } })
@@ -41,7 +41,7 @@ export class Database {
     public getGroup = async (jid: string): Promise<TGroupModel> =>
         (await this.group.findOne({ jid })) || (await new this.group({ jid }).save())
 
-    public updateGroup = async (jid: string, field: keyof GroupSchema, update: boolean): Promise<void> => {
+    public updateGroup = async (jid: string, field: keyof Group, update: boolean): Promise<void> => {
         await this.getGroup(jid)
         await this.group.updateOne({ jid }, { $set: { [field]: update } })
     }
