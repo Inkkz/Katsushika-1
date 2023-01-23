@@ -208,3 +208,4 @@ type Events = {
     participants_update: (event: IEvent) => void
     new_group_joined: (group: { jid: string; subject: string }) => void
     open: () => void
+}
