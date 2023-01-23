@@ -28,7 +28,7 @@ export class Server {
         this.app.listen(client.config.PORT, () => client.log(`Server started on PORT : ${client.config.PORT}`))
     }
 
-    private path = join(__dirname, '..', '..', 'frontend')
+    private path = join(__dirname, '..', '..', 'public')
 
     private app = express()
 }
