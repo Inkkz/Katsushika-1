@@ -1,15 +1,15 @@
 {
-  "name": "WhatsApp-bot",
-  "description": "A WhatsApp Bot written in TypeScript using Baileys.",
+  "name": "Katsushika",
+  "description": "An anime themed WhatsApp Bot written in TypeScript using Baileys.",
   "keywords": [
     "bot",
     "whatsapp",
-    "whatsapp-bot",
+    "Katsushika",
     "whatsapp-anime-bot"
   ],
-  "logo": "https://raw.githubusercontent.com/LuckyYam/WhatsApp-bot/master/assets/images/whatsapp-bot.png",
-  "website": "https://github.com/LuckyYam/WhatsApp-bot#readme",
-  "repository": "https://github.com/LuckyYam/WhatsApp-bot.git",
+  "logo": "https://raw.githubusercontent.com/Issa2001/Katsushika/master/assets/images/img.jpg",
+  "website": "https://github.com/Issa2001/Katsushika#readme",
+  "repository": "https://github.com/Issa2001/Katsushika.git",
   "success_url": "/",
   "env": {
     "BOT_NAME": {
