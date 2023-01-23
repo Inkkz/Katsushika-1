@@ -8,7 +8,7 @@ import { BaseCommand, Command, Message } from '../../Structures'
     exp: 10
 })
 export default class command extends BaseCommand {
-    public override execute = async (M: Message): Promise<void> => {
+    public override execute = async ({ reply }: Message): Promise<void> => {
     const users = await this.client.DB.user.count()
     const uptime = this.client.utils.formatSeconds(process.uptime())
     let getGroups = await this.client.groupFetchAllParticipating()
