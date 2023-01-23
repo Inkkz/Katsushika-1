@@ -1,7 +1,7 @@
 import { prop, getModelForClass } from '@typegoose/typegoose'
 import { Document } from 'mongoose'
 
-export class GroupSchema {
+export class Group {
     @prop({ type: String, unique: true, required: true })
     public jid!: string
 
@@ -15,6 +15,6 @@ export class GroupSchema {
     public nsfw!: boolean
 }
 
-export type TGroupModel = GroupSchema & Document
+export type TGroupModel = Group & Document
 
 export const groupSchema = getModelForClass(GroupSchema)
