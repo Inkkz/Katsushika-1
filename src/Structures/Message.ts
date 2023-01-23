@@ -113,12 +113,6 @@ export class Message {
     }
 
     public simplify = async (): Promise<Message> => {
-        const { username } = await this.client.DB.getUser(this.sender.jid)
-        if (username.custom && username.name) this.sender.username = username.name
-        if (this.quoted) {
-            const { username } = await this.client.DB.getUser(this.quoted.sender.jid)
-            if (username.custom && username.name) this.quoted.sender.username = username.name
-        }
         if (this.chat === 'dm') return this
         return await this.client
             .groupMetadata(this.from)
