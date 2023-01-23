@@ -1,7 +1,7 @@
 import { prop, getModelForClass } from '@typegoose/typegoose'
 import { Document } from 'mongoose'
 
-export class UserSchema {
+export class User {
     @prop({ type: String, required: true, unique: true })
     public jid!: string
 
@@ -19,6 +19,6 @@ export class UserSchema {
 
 }
 
-export type TUserModel = UserSchema & Document
+export type TUserModel = User & Document
 
 export const userSchema = getModelForClass(UserSchema)
