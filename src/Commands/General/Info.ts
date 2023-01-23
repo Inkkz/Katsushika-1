@@ -1,7 +1,7 @@
 import { BaseCommand, Command, Message } from '../../Structures'
 
 @Command('info', {
-    category: 'core',
+    category: 'general',
     aliases: ['alive'],
     description: 'shows bot info',
     usage: 'info',
