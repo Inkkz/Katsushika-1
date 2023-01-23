@@ -50,7 +50,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
         })
         for (const method of Object.keys(this.client))
             this[method as keyof Client] = this.client[method as keyof client]
-        this.ws.on('CB:call', (call: ICall) => this.emit('new_call', { from: call.content[0].attrs['call-creator'] }))
+        this.ev.on('call', (call) => this.emit('new_call', call[0]))
         this.ev.on('contacts.update', async (contacts) => await this.contact.saveContacts(contacts))
         this.ev.on('messages.upsert', async ({ messages }) => {
             const M = new Message(messages[0], this)
