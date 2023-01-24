@@ -13,7 +13,8 @@ export default class command extends BaseCommand {
     const uptime = this.client.utils.formatSeconds(process.uptime())
     let getGroups = await this.client.groupFetchAllParticipating()
     let groups = Object.entries(getGroups).slice(0).map(entry => entry[1])
-    let res = groups.map(v=> v.id) console.log(res.length)
+    let res = groups.map(v=> v.id)
+    console.log(res.length)
 
         const buttons = [
             {
