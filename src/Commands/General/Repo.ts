@@ -13,7 +13,7 @@ export default class extends BaseCommand {
         const { name } = require(join(__dirname, '..', '..', '..', 'package.json')) as {
             name: string
         }
-        const image = this.client.assets.get('Img') as Buffer
+        const image = this.client.assets.get('img') as Buffer
         const text = `*━━━❰ Bot Repo ❱━━━*\n\n⚜𝗗𝗲𝘀𝗰𝗿𝗶𝗽𝘁𝗶𝗼𝗻: An anime themed WhatsApp bot written in Typescript using baileys.\n\n🚥𝗦𝘁𝗮𝘁𝘂𝘀: Bot in development stage.\n\n🧩𝗛𝗶𝗻𝘁: The bot is an open source project, therefore you can deploy a version of it;
 (https://github.com/Issa2001/Katsushika)\n\n⭐𝗜𝗻𝗳𝗼: This bot is using a base of WhatsApp-bot, we therefore don't have any copyright or either affiliated with WhatsApp-bot anyhowly. Thanks to Lucky Yambem for base bot.
 (https://github.com/LuckyYam/WhatsApp-bot)\n\n📃𝗟𝗶𝗰𝗲𝗻𝘀𝗲: You may obtain a copy of the License at;
