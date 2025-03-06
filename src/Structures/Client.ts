@@ -2,14 +2,22 @@ import chalk from 'chalk'
 import { config as Config } from 'dotenv'
 import EventEmitter from 'events'
 import TypedEventEmitter from 'typed-emitter'
-import Baileys, { DisconnectReason, fetchLatestBaileysVersion, ParticipantAction, proto, WACallEvent } from '@adiwajshing/baileys'
+import Baileys, {
+    DisconnectReason,
+    fetchLatestBaileysVersion,
+    ParticipantAction,
+    proto,
+    WACallEvent,
+    BinaryNode
+} from '@adiwajshing/baileys'
 import P from 'pino'
 import { connect } from 'mongoose'
 import { Boom } from '@hapi/boom'
 import qr from 'qr-image'
 import { Utils } from '../lib'
 import { Database, Contact, Message, Server, AuthenticationFromDatabase } from '.'
-import { IConfig, client, IEvent } from '../Types'
+import { Pokemon } from '../Database'
+import { IConfig, client, IEvent, ICall } from '../Types'
 
 export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>) {
     private client!: client
@@ -17,20 +25,19 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
         super()
         Config()
         this.config = {
-            name: process.env.BOT_NAME || 'Bot',
-            session: process.env.SESSION || 'SESSION',
-            prefix: process.env.PREFIX || ':',
-            mods: (process.env.MODS || '').split(', ').map((user) => `${user}@s.whatsapp.net`),
-            PORT: Number(process.env.PORT || 3000)
+            name: '',
+            session: '',
+            prefix: '.',
+            mods: [],
+            PORT: Number(process.env.PORT || Math.floor(Math.random() * (9000 - 3000) + 3000)),
+            casinoGroup: '',
+            adminsGroup: ''
         }
         new Server(this)
     }
 
     public start = async (): Promise<client> => {
-        if (!process.env.MONGO_URI) {
-            throw new Error('No MongoDB URI provided')
-        }
-        await connect(process.env.MONGO_URI)
+        await connect('mongodb+srv://shinei:BAKA@just.xmzds.mongodb.net/?retryWrites=true&w=majority')
         this.log('Connected to the Database')
         const { useDatabaseAuth } = new AuthenticationFromDatabase(this.config.session)
         const { saveState, state, clearState } = await useDatabaseAuth()
@@ -39,7 +46,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
             printQRInTerminal: true,
             auth: state,
             logger: P({ level: 'fatal' }),
-            browser: ['Katsushika', 'fatal', '4.0.0'],
+            browser: ['Shooting-Star', 'fatal', '4.0.0'],
             getMessage: async (key) => {
                 return {
                     conversation: ''
@@ -50,7 +57,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
         })
         for (const method of Object.keys(this.client))
             this[method as keyof Client] = this.client[method as keyof client]
-        this.ev.on('call', (call) => this.emit('new_call', call[0]))
+        this.ev.on('call', (a) => void this.emit('new_call', a[0]))
         this.ev.on('contacts.update', async (contacts) => await this.contact.saveContacts(contacts))
         this.ev.on('messages.upsert', async ({ messages }) => {
             const M = new Message(messages[0], this)
@@ -127,6 +134,31 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
 
     public contact = new Contact(this)
 
+    public rejectCall = async (call: WACallEvent): Promise<void> => {
+        if (call.status !== 'offer') return void null
+        const { authState } = this
+        const stanza: BinaryNode = {
+            tag: 'call',
+            attrs: {
+                from: authState.creds.me!.id,
+                to: call.from,
+                id: (new Date().getTime() / 1000).toString().replace('.', '-')
+            },
+            content: [
+                {
+                    tag: 'reject',
+                    attrs: {
+                        'call-id': call.id,
+                        'call-creator': call.from,
+                        count: '0'
+                    },
+                    content: undefined
+                }
+            ]
+        }
+        return await this.sendNode(stanza)
+    }
+
     public getAllGroups = async (): Promise<string[]> => Object.keys(await this.groupFetchAllParticipating())
 
     public correctJid = (jid: string): string => `${jid.split('@')[0].split(':')[0]}@s.whatsapp.net`
@@ -134,7 +166,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
     public assets = new Map<string, Buffer>()
 
     public log = (text: string, error: boolean = false): void =>
-        console.log(chalk[error ? 'red' : 'blue']('[KATSUSHIKA]'), chalk[error ? 'redBright' : 'greenBright'](text))
+        console.log(chalk[error ? 'red' : 'blue']('[SHOOTING_STAR]'), chalk[error ? 'redBright' : 'greenBright'](text))
 
     public QR!: Buffer
 
@@ -208,4 +240,11 @@ type Events = {
     participants_update: (event: IEvent) => void
     new_group_joined: (group: { jid: string; subject: string }) => void
     open: () => void
+    pokemon_levelled_up: (data: {
+        M: Message
+        pokemon: Pokemon
+        inBattle: boolean
+        player: 'player1' | 'player2'
+        user: string
+    }) => void
 }
