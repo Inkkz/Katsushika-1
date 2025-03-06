@@ -1,5 +1,4 @@
 import chalk from 'chalk'
-import { delay } from '@adiwajshing/baileys'
 import { Client } from '../Structures'
 import { IEvent } from '../Types'
 
@@ -11,7 +10,7 @@ export class EventHandler {
             subject: '',
             description: ''
         }
-        await delay(1500)
+        this.handleMods(event)
         await this.client
             .groupMetadata(event.jid)
             .then((res) => {
@@ -25,11 +24,12 @@ export class EventHandler {
         this.client.log(
             `${chalk.blueBright('EVENT')} ${chalk.green(
                 `${this.client.utils.capitalize(event.action)}[${event.participants.length}]`
-            )} in ${chalk.cyanBright(`$`)}`
+            )} in ${chalk.cyanBright(group.subject)}`
         )
-        const { events } = await this.client.DB.getGroup(event.jid)
+        const { events, bot } = await this.client.DB.getGroup(event.jid)
         if (
             !events ||
+            bot !== this.client.config.name.split(' ')[0] ||
             (event.action === 'remove' &&
                 event.participants.includes(
                     `${(this.client.user?.id || '').split('@')[0].split(':')[0]}@s.whatsapp.net`
@@ -51,15 +51,14 @@ export class EventHandler {
                 ? `Ara Ara, looks like *@${event.participants[0].split('@')[0]}* got Demoted`
                 : `Congratulations *@${event.participants[0].split('@')[0]}*, you're now an admin`
         if (event.action === 'add') {
-            let imageUrl: string | undefined
+            let image!: Buffer
             try {
-                imageUrl = await this.client.profilePictureUrl(event.jid)
+                image = await this.client.utils.getBuffer(
+                    (await this.client.profilePictureUrl(event?.jid || '', 'image')) || ''
+                )
             } catch (error) {
-                imageUrl = undefined
+                image = this.client.assets.get('404') as Buffer
             }
-            const image = imageUrl
-                ? await this.client.utils.getBuffer(imageUrl)
-                : (this.client.assets.get('404') as Buffer)
             return void (await this.client.sendMessage(event.jid, {
                 image: image,
                 mentions: event.participants,
@@ -77,5 +76,16 @@ export class EventHandler {
         return void (await this.client.sendMessage(group.jid, {
             text: `Thanks for adding me in this group. Please use *${this.client.config.prefix}help* to get started.`
         }))
+    }
+
+    private handleMods = (event: IEvent): void => {
+        if (
+            event.jid !== this.client.config.adminsGroup ||
+            (event.action !== 'promote' && event.action !== 'demote' && event.action !== 'remove')
+        )
+            return void null
+        event.action === 'promote'
+            ? this.client.config.mods.push(event.participants[0])
+            : this.client.config.mods.splice(this.client.config.mods.indexOf(event.participants[0]), 1)
     }
 }
