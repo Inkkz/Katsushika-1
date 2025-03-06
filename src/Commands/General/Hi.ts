@@ -1,14 +1,13 @@
 import { BaseCommand, Command, Message } from '../../Structures'
 
 @Command('hi', {
-    description: 'Says hello to the bot',
+    description: 'Says hi to the bot',
     category: 'general',
-    usage: 'hi',
     aliases: ['hello'],
-    exp: 25,
-    cooldown: 5
+    exp: 5,
+    cooldown: 5,
+    usage: 'hi'
 })
-export default class extends BaseCommand {
-    public override execute = async ({ sender, reply }: Message): Promise<void> =>
-        void (await reply(`Hello! *${sender.username}*`))
+export default class command extends BaseCommand {
+    override execute = async ({ reply, sender }: Message): Promise<void> => void reply(`Hello! *${sender.username}*`)
 }
