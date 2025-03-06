@@ -62,7 +62,8 @@ export class EventHandler {
             return void (await this.client.sendMessage(event.jid, {
                 image: image,
                 mentions: event.participants,
-                caption: text
+                caption: text,
+                jpegThumbnail: image.toString('base64')
             }))
         }
         return void (await this.client.sendMessage(event.jid, {

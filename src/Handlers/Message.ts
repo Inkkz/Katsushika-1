@@ -10,25 +10,26 @@ import { Pokemon, Card, PokemonMove } from '../Database'
 import { PokemonClient } from 'pokenode-ts'
 import { ICharacter, Character } from '@shineiichijo/marika'
 import Game from 'chess-node'
-import axios from 'axios'
 
 export class MessageHandler {
     constructor(private client: Client) {}
 
     public groups!: string[]
 
-    public chara: string[] = []
+    public card: string[] = []
 
     public wild: string[] = []
+
+    public chara: string[] = []
 
     public chess = {
         games: new Map<string, Game | undefined>(),
         challenges: new Map<string, { challenger: string; challengee: string } | undefined>(),
         ongoing: new Set<string>()
     }
-    
+
     public charaResponse = new Map<string, { price: number; data: ICharacter }>()
-            
+
     public loadCharaEnabledGroups = async (): Promise<void> => {
         const groups = !this.groups ? await this.client.getAllGroups() : this.groups
         for (const group of groups) {
@@ -36,15 +37,14 @@ export class MessageHandler {
             if (!data.chara) continue
             this.chara.push(group)
         }
-            
         this.client.log(
             `Successfully loaded ${chalk.blueBright(`${this.chara.length}`)} ${
                 this.chara.length > 1 ? 'groups' : 'group'
             } which has enabled chara`
         )
         await this.spawnChara()
-    }     
-            
+    }
+
     private spawnChara = async (): Promise<void> => {
         schedule('*/5 * * * *', async () => {
             if (this.chara.length < 1) return void null
@@ -68,10 +68,20 @@ export class MessageHandler {
                                         .catch(() => {})
                                 })
                             const buffer = await this.client.utils.getBuffer(chara.images.jpg.image_url)
+                            const buttons = [
+                                {
+                                    buttonId: 'id1',
+                                    buttonText: { displayText: `${this.client.config.prefix}claim` },
+                                    type: 1
+                                }
+                            ]
                             const buttonMessage = {
                                 image: buffer,
                                 jpegThumbnail: buffer.toString('base64'),
-                                caption: `*A claimable character Appeared!*\n\n🏮 *Name: ${chara.name}*\n\n📑 *About:* ${chara.about}\n\n🌐 *Source: ${source}*\n\n💰 *Price: ${price}*\n\n*[Use ${this.client.config.prefix}claim to have this character in your gallery]*`
+                                caption: `*A claimable character Appeared!*\n\n🏮 *Name: ${chara.name}*\n\n📑 *About:* ${chara.about}\n\n🌐 *Source: ${source}*\n\n💰 *Price: ${price}*\n\n*[Use ${this.client.config.prefix}claim to have this character in your gallery]*`,
+                                footer: '',
+                                buttons: buttons,
+                                headerType: 4
                             }
                             this.charaResponse.set(this.chara[i], { price, data: chara })
                             await this.client.sendMessage(this.chara[i], buttonMessage)
@@ -80,7 +90,7 @@ export class MessageHandler {
                 }, (i + 1) * 20 * 1000)
             }
         })
-    }        
+    }
 
     private spawnPokemon = async (): Promise<void> => {
         schedule('*/11 * * * *', async () => {
@@ -137,11 +147,83 @@ export class MessageHandler {
                     const buffer = await this.client.utils.getBuffer(image)
                     await this.client.sendMessage(this.wild[i], {
                         image: buffer,
-                        caption: `A Wild Pokemon Appeared! [Use *${this.client.config.prefix}catch <pokemon_name>* to catch this pokemon!]`
+                        jpegThumbnail: buffer.toString('base64'),
+                        caption: `A wild Pokemon appeared! Use *${this.client.config.prefix}catch <pokemon_name>* to catch this pokemon`
                     })
                 }, (i + 1) * 45 * 1000)
             }
         })
+    }
+
+    public summonCard = async (jid: string, id: string): Promise<void> => {
+        const url = `https://shoob.gg/cards/info/${id}`
+        return await this.client.utils
+            .fetch<string>(`https://scrap-shoob.herokuapp.com/scrap?id=${id}`)
+            .then(async (data) => {
+                const valid = this.client.utils.validateCard(data)
+                if (!valid)
+                    return void (await this.client.sendMessage(jid, {
+                        text: 'Invalid Card ID'
+                    }))
+                const { name, image, description, tier } = this.client.utils.scrapCardData(data)
+                const price =
+                    tier === '1'
+                        ? Math.floor(Math.random() * (1000 - 650) + 650)
+                        : tier === '2'
+                        ? Math.floor(Math.random() * (1850 - 1110) + 1110)
+                        : tier === '3'
+                        ? Math.floor(Math.random() * (3400 - 2300) + 3400)
+                        : tier === '4'
+                        ? Math.floor(Math.random() * (5400 - 4100) + 4100)
+                        : tier === '5'
+                        ? Math.floor(Math.random() * (9800 - 7100) + 7100)
+                        : tier === '6'
+                        ? Math.floor(Math.random() * (24890 - 18350) + 18350)
+                        : Math.floor(Math.random() * (54160 - 37980) + 37980)
+                this.cardResponse.set(jid, {
+                    name,
+                    id,
+                    tier,
+                    image,
+                    url,
+                    price,
+                    description
+                })
+                let buffer = await this.client.utils.getBuffer(image)
+                let type: 'image' | 'video' = 'image'
+                if (tier === '6' || tier === 'S') type = 'video'
+                if (type === 'video') buffer = await this.client.utils.gifToMp4(buffer)
+                const text = `🧧 *Details* 🧧\n\n🎈 *Name:* ${name}\n📘 *Description:* ${description}\n🎐 *Tier:* ${tier}\n🎏 *Price:* ${price}\n\nUse *${this.client.config.prefix}claim* to get this card for yourself.`
+                const buttons = [
+                    {
+                        buttonId: 'id1',
+                        buttonText: { displayText: `${this.client.config.prefix}claim` },
+                        type: 1
+                    }
+                ]
+                const buttonMessage = {
+                    [type]: buffer,
+                    caption:
+                        tier !== 'S'
+                            ? `🃏 A Collectable card Appeared! 🃏\n\n${text}`
+                            : `🃏 Woahh! An S tier Card Appeared! 🃏\n\n${text}`,
+                    footer: '',
+                    buttons: buttons,
+                    headerType: type === 'image' ? 4 : 5
+                }
+                await this.client.sendMessage(jid, buttonMessage as unknown as AnyMessageContent)
+                if (!image.includes('eventcards')) {
+                    await delay(3000)
+                    await this.client.utils
+                        .fetch<string>(`https://shooting-star-unique-api.vercel.app/api/mwl/insert?id=${id}`)
+                        .catch((err) => this.client.log(err.message))
+                }
+            })
+            .catch(async (err) => {
+                return void (await this.client.sendMessage(jid, {
+                    text: err.message
+                }))
+            })
     }
 
     public summonPokemon = async (
@@ -158,7 +240,7 @@ export class MessageHandler {
         const data = await this.client.utils.fetch<IPokemonAPIResponse>(`https://pokeapi.co/api/v2/pokemon/${i}`)
         if (!data.name)
             return void (await this.client.sendMessage(jid, {
-                text: 'Invalid Pokemon name or ID!'
+                text: 'Invalid Pokemon name or ID'
             }))
         const image = data.sprites.other['official-artwork'].front_default as string
         const { hp, attack, defense, speed } = await this.client.utils.getPokemonStats(data.id, level)
@@ -197,7 +279,8 @@ export class MessageHandler {
         const buffer = await this.client.utils.getBuffer(image)
         return void (await this.client.sendMessage(jid, {
             image: buffer,
-            caption: `A Wild Pokemon Appeared! Use *${this.client.config.prefix}catch <pokemon_name>* to catch this pokemon.`
+            jpegThumbnail: buffer.toString('base64'),
+            caption: `A wild Pokemon appeared! Use *${this.client.config.prefix}catch <pokemon_name>* to catch this pokemon`
         }))
     }
 
@@ -207,9 +290,9 @@ export class MessageHandler {
             .then(async (haigusha) => {
                 const appearances = haigusha.appearances as WaifuResponse['series'][]
                 this.haigushaResponse.set(jid, haigusha)
-                let text = `🎴 *Name:* ${haigusha.name}\n\n🎗 *Original Name:* ${haigusha.original_name}\n\n`
-                if (haigusha.age && haigusha.age !== null) text += `🌼 *Age:* ${haigusha.age}\n\n`
-                text += `💫 *Gender:* ${haigusha.husbando ? 'Male' : 'Female'}\n\n🔗 *Appearance:* ${
+                let text = `🎐 *Name:* ${haigusha.name}\n\n🎗 *Original Name:* ${haigusha.original_name}\n\n`
+                if (haigusha.age && haigusha.age !== null) text += `🍀 *Age:* ${haigusha.age}\n\n`
+                text += `🎀 *Gender:* ${haigusha.husbando ? 'Male' : 'Female'}\n\n🔗 *Appearance:* ${
                     haigusha.series !== null || haigusha.series ? haigusha.series?.name : appearances[0]?.name
                 }\n\n❄ *Description:* ${haigusha.description}`
                 const buttons = [
@@ -222,8 +305,9 @@ export class MessageHandler {
                 const buffer = await this.client.utils.getBuffer(haigusha.display_picture as string)
                 const buttonMessage = {
                     image: buffer,
+                    jpegThumbnail: buffer.toString('base64'),
                     caption: text,
-                    footer: '© Sapphire Inc 2022',
+                    footer: '',
                     buttons: buttons,
                     headerType: 4,
                     contextInfo: {
@@ -242,28 +326,81 @@ export class MessageHandler {
             })
     }
 
+    private spawnCard = async (): Promise<void> => {
+        schedule('*/19 * * * *', async () => {
+            if (this.card.length < 1) return void null
+            for (let i = 0; i < this.card.length; i++) {
+                setTimeout(async () => {
+                    const { cards, bot } = await this.client.DB.getGroup(this.card[i])
+                    if (bot !== 'all' && bot !== this.client.config.name.split(' ')[0]) return void null
+                    if (!cards) return void null
+                    const id = await this.client.utils.fetch<string>(
+                        'https://shooting-star-unique-api.vercel.app/api/mwl/random/card'
+                    )
+                    const url = `https://shoob.gg/cards/info/${id}`
+                    await this.client.utils
+                        .fetch<string>(`https://scrap-shoob.herokuapp.com/scrap?id=${id}`)
+                        .then(async (data) => {
+                            const { name, image, description, tier } = this.client.utils.scrapCardData(data)
+                            const price =
+                                tier === '1'
+                                    ? Math.floor(Math.random() * (1000 - 650) + 650)
+                                    : tier === '2'
+                                    ? Math.floor(Math.random() * (1850 - 1110) + 1110)
+                                    : tier === '3'
+                                    ? Math.floor(Math.random() * (3400 - 2300) + 3400)
+                                    : tier === '4'
+                                    ? Math.floor(Math.random() * (5400 - 4100) + 4100)
+                                    : tier === '5'
+                                    ? Math.floor(Math.random() * (9800 - 7100) + 7100)
+                                    : tier === '6'
+                                    ? Math.floor(Math.random() * (24890 - 18350) + 18350)
+                                    : Math.floor(Math.random() * (54160 - 37980) + 37980)
+                            this.cardResponse.set(this.card[i], {
+                                name,
+                                id,
+                                tier,
+                                image,
+                                url,
+                                price,
+                                description
+                            })
+                            let buffer = await this.client.utils.getBuffer(image)
+                            let type: 'image' | 'video' = 'image'
+                            if (tier === '6' || tier === 'S') type = 'video'
+                            if (type === 'video') buffer = await this.client.utils.gifToMp4(buffer)
+                            const text = `🧧 *Details* 🧧\n\n🎈 *Name:* ${name}\n📘 *Description:* ${description}\n🎐 *Tier:* ${tier}\n🎏 *Price:* ${price}\n\nUse *${this.client.config.prefix}claim* to get this card for yourself.`
+                            const buttons = [
+                                {
+                                    buttonId: 'id1',
+                                    buttonText: { displayText: `${this.client.config.prefix}claim` },
+                                    type: 1
+                                }
+                            ]
+                            const buttonMessage = {
+                                [type]: buffer,
+                                caption:
+                                    tier !== 'S'
+                                        ? `🃏 A Collectable card Appeared! 🃏\n\n${text}`
+                                        : `🃏 Woahh! An S tier Card Appeared! 🃏\n\n${text}`,
+                                footer: '',
+                                buttons: buttons,
+                                headerType: type === 'image' ? 4 : 5
+                            }
+                            await this.client.sendMessage(this.card[i], buttonMessage as unknown as AnyMessageContent)
+                        })
+                        .catch(() => {
+                            return void null
+                        })
+                }, (i + 1) * 48 * 1000)
+            }
+        })
+    }
+
     public handleMessage = async (M: Message): Promise<void> => {
         const { prefix } = this.client.config
         const args = M.content.split(' ')
         const title = M.chat === 'dm' ? 'DM' : M.groupMetadata?.subject || 'Group'
-        const text = M.content
-        if (M.chat === 'dm' && (await this.client.DB.getFeature('chatbot')).state) {
-          if (M.message.key.fromMe) return void null;
-            if (this.client.config.chatBotUrl) {
-                const myUrl = this.client.config.chatBotUrl
-                let get = new URL(myUrl)
-                let params = get.searchParams;
-                    await axios
-                    .get(`${encodeURI(`http://api.brainshop.ai/get?bid=${params.get('bid')}&key=${params.get('key')}&uid=${M.sender.jid}&msg=${text}`)}`)       
-                    .then((res) => {
-                        if (res.status !== 200) return void M.reply(`Error: ${res.status}`)
-                        return void M.reply(res.data.cnt)
-                    })
-                    .catch(() => {
-                        M.reply(`Well....`)
-                    })
-            }
-        }
         await this.moderate(M)
         if (!args[0] || !args[0].startsWith(prefix))
             return void this.client.log(
@@ -293,15 +430,15 @@ export class MessageHandler {
         const index = disabledCommands.findIndex((CMD) => CMD.command === command.name)
         if (index >= 0)
             return void M.reply(
-                `🟥 *${this.client.utils.capitalize(cmd)}* is currently disabled by *${
+                `💈 *${this.client.utils.capitalize(cmd)}* is currently disabled by *${
                     disabledCommands[index].deniedBy
-                }* on *${disabledCommands[index].time} (GMT)*.\n\n📮 *Reason:* ${disabledCommands[index].reason}`
+                }* in *${disabledCommands[index].time} (GMT)*. 🎈 Reason: *${disabledCommands[index].reason}*`
             )
-        if (M.chat === 'dm' && !command.config.dm) return void M.reply('This command can ONLY be used in groups!')
+        if (M.chat === 'dm' && !command.config.dm) return void M.reply('You can use this command only in groups')
         if (command.config.category === 'moderation' && !M.sender.isAdmin)
-            return void M.reply('This command can ONLY be used by the group admins!')
+            return void M.reply('This command can only be used by the group admins')
         if (command.config.antiTrade && this.userTradeSet.has(M.sender.jid))
-            return void M.reply("You can't use this command right now as you created an ongoing card trade.")
+            return void M.reply("You can't use this command right now as you created an ongoing card trade")
         if (command.config.category === 'pokemon' && companion === 'None' && command.name !== 'start-journey') {
             const Buttons = [
                 {
@@ -313,7 +450,7 @@ export class MessageHandler {
             const text = `You haven't started your Pokemon journey yet. Use *${this.client.config.prefix}start-journey* to start`
             const ButtonMessage = {
                 text,
-                footer: '© Sapphire Inc 2022',
+                footer: '',
                 buttons: Buttons,
                 headerType: 1
             }
@@ -322,17 +459,17 @@ export class MessageHandler {
             }))
         }
         if (command.config.category === 'nsfw' && !(await this.client.DB.getGroup(M.from)).nsfw)
-            return void M.reply("This comand can ONLY be used in NSFW enabled groups!")
+            return void M.reply("Don't be a pervert, Baka! This comand can only be used in NSFW enabled groups")
         if (command.config.category === 'dev' && !M.sender.isMod)
-            return void M.reply('This command can ONLY be used by the MODS!')
+            return void M.reply('This command can only be used by the MODS')
         if (command.config.casino && M.from !== this.client.config.casinoGroup)
             return void M.reply(
                 `This command can only be used in the casino group. Use ${this.client.config.prefix}support to get the casino group link`
             )
         const isAdmin = M.groupMetadata?.admins?.includes(this.client.correctJid(this.client.user?.id || ''))
-        if (command.config.adminRequired && !isAdmin) return void M.reply('Cannot complete request as I am not an admin!')
+        if (command.config.adminRequired && !isAdmin) return void M.reply('I need to be an admin to use this command')
         if (command.config.antiBattle && this.pokemonBattlePlayerMap.has(M.sender.jid))
-            return void M.reply("You can't use this command now as you're in the midway of a battle with someone.")
+            return void M.reply("You can't use this command now as you're in the midway of a battle with someone")
         const cooldownAmount = (command.config.cooldown ?? 3) * 1000
         const time = cooldownAmount + Date.now()
         if (this.cooldowns.has(`${M.sender.jid}${command.name}`)) {
@@ -370,10 +507,25 @@ export class MessageHandler {
         }
         this.client.log(
             `Successfully loaded ${chalk.blueBright(`${this.wild.length}`)} ${
-                this.chara.length > 1 ? 'groups' : 'group'
+                this.card.length > 1 ? 'groups' : 'group'
             } which has enabled wild`
         )
         await this.spawnPokemon()
+    }
+
+    public loadCardsEnabledGroups = async (): Promise<void> => {
+        const groups = !this.groups ? await this.client.getAllGroups() : this.groups
+        for (const group of groups) {
+            const data = await this.client.DB.getGroup(group)
+            if (!data.cards) continue
+            this.card.push(group)
+        }
+        this.client.log(
+            `Successfully loaded ${chalk.blueBright(`${this.card.length}`)} ${
+                this.card.length > 1 ? 'groups' : 'group'
+            } which has enabled cards`
+        )
+        await this.spawnCard()
     }
 
     private moderate = async (M: Message): Promise<void> => {
@@ -387,13 +539,13 @@ export class MessageHandler {
                     M.sender.username
                 )} in ${chalk.cyanBright('DM')}`
             )
-            const text = `*━━━❰ GROUP REQUEST ❱━━━*\n\n*🚀Request:* from *@${M.sender.jid.split('@')[0]}*\n\n*📃Message:* ${M.content}`
+            const text = `Request from *@${M.sender.jid.split('@')[0]}*\n\n${M.content}`
             if (M.message.key.fromMe) return void null
             await this.client.sendMessage(this.client.config.adminsGroup, {
                 text,
                 mentions: [M.sender.jid]
             })
-            return void M.reply('Your request has been sent🎉')
+            return void M.reply('Your request has been sent')
         }
         const { mods } = await this.client.DB.getGroup(M.from)
         if (
@@ -500,7 +652,7 @@ export class MessageHandler {
         pkmn.maxHp = hp
         pkmn.maxDefense = defense
         party[i] = pkmn
-        await this.client.DB.updateUser(jid, 'party', 'set', party)
+        await this.client.DB.user.updateOne({ jid }, { $set: { party } })
         if (inBattle) {
             const data = this.pokemonBattleResponse.get(M.from)
             if (data && data[player].activePokemon.tag === pkmn.tag) {
@@ -522,7 +674,7 @@ export class MessageHandler {
                     this.pokemonBattleResponse.set(M.from, data)
                 }
             }
-            await this.client.DB.updateUser(jid, 'party', 'set', party)
+            await this.client.DB.user.updateOne({ jid }, { $set: { party } })
             await this.client.sendMessage(M.from, {
                 text: `*@${jid.split('@')[0]}*'s *${this.client.utils.capitalize(pkmn.name)}* learnt *${move}*`,
                 mentions: [jid]
@@ -530,29 +682,43 @@ export class MessageHandler {
             await delay(3000)
             return await this.handlePokemonEvolution(M, pkmn, inBattle, player, user)
         } else {
-            let Text = `*Moves | ${this.client.utils.capitalize(pkmn.name)}*`
+            const sections: proto.Message.ListMessage.ISection[] = []
+            const rows: proto.Message.ListMessage.IRow[] = []
             for (const move of pkmn.moves) {
-                const i = pkmn.moves.findIndex((x) => x.name === move.name)
-                Text += `\n\n*#${i + 1}*\n❓ *Move:*  ${move.name
-                    .split('-')
-                    .map((name) => this.client.utils.capitalize(name))
-                    .join(' ')}\n〽 *PP:* ${move.maxPp}\n🎗 *Type:* ${this.client.utils.capitalize(
-                    move.type || 'Normal'
-                )}\n🎃 *Power:* ${move.power}\n🎐 *Accuracy:* ${move.accuracy}\n🧧 *Description:* ${
-                    move.description
-                }\nUse *${this.client.config.prefix}learn --${move.name} to delete this move and learn the new one.`
+                rows.push({
+                    title: `Delete ${move.name
+                        .split('-')
+                        .map((name) => this.client.utils.capitalize(name))
+                        .join(' ')}`,
+                    rowId: `${this.client.config.prefix}learn --${move.name}`,
+                    description: `Type: ${this.client.utils.capitalize(move.type)} | PP: ${move.maxPp} | Power: ${
+                        move.power
+                    } | Accuracy: ${move.accuracy}`
+                })
             }
-            Text += `\n\nUse *${this.client.config.prefix}learn --cancel* if you don't want to learn ${move}.`
+            sections.push({ title: `${this.client.utils.capitalize(pkmn.name)} Moves`, rows })
+            const Rows: proto.Message.ListMessage.IRow[] = [
+                {
+                    title: 'Cancel',
+                    rowId: `${this.client.config.prefix}learn --cancel`,
+                    description: `Type: ${this.client.utils.capitalize(learnableMove.type)} | PP: ${
+                        learnableMove.maxPp
+                    } | Power: ${learnableMove.power} | Accuracy: ${learnableMove.accuracy}`
+                }
+            ]
+            sections.push({ title: 'Cancel Learning', rows: Rows })
             this.pokemonMoveLearningResponse.set(`${M.from}${jid}`, {
                 move: learnableMove,
                 data: pkmn
             })
             const text = `*@${jid.split('@')[0]}*, your Pokemon *${this.client.utils.capitalize(
                 pkmn.name
-            )}* is trying to learn *${move}*.\nBut a Pokemon can't learn more than 4 moves.\nDelete a move to learn this move.\n\n*[This will autometically be cancelled if you don't continue within 60 seconds]*`
+            )}* is trying to learn *${move}*.\nBut a Pokemon can't learn more than 4 moves.\nDelete a move to learn this move by selecting one of the moves below.\n\n*[This will autometically be cancelled if you don't continue within 60 seconds]*`
             await this.client.sendMessage(M.from, {
                 text,
-                mentions: [jid]
+                mentions: [jid],
+                sections,
+                buttonText: `${this.client.utils.capitalize(pkmn.name)} Moves`
             })
             await delay(1500)
             await this.client.sendMessage(M.from, {
@@ -562,15 +728,11 @@ export class MessageHandler {
                     learnableMove.power
                 }\n🎐 *Accuracy:* ${learnableMove.accuracy}\n🧧 *Description:* ${learnableMove.description}`
             })
-            await delay(1500)
-            await this.client.sendMessage(M.from, {
-                text: Text
-            })
             setTimeout(async () => {
                 if (this.pokemonMoveLearningResponse.has(`${M.from}${jid}`)) {
                     this.pokemonMoveLearningResponse.delete(`${M.from}${jid}`)
                     party[i].rejectedMoves.push(learnableMove.name)
-                    await this.client.DB.updateUser(jid, 'party', 'set', party)
+                    await this.client.DB.user.updateOne({ jid }, { $set: { party } })
                     await this.client.sendMessage(M.from, {
                         text: `*@${jid.split('@')[0]}*'s *${this.client.utils.capitalize(
                             pkmn.name
@@ -612,8 +774,18 @@ export class MessageHandler {
         }cancel-evolution* to cancel this evolution (within 60s)`
         const { party } = await this.client.DB.getUser(M.sender.jid)
         const i = party.findIndex((x) => x.tag === pkmn.tag)
+        const Buttons = [
+            {
+                buttonId: 'id1',
+                buttonText: { displayText: `${this.client.config.prefix}cancel-evolution` },
+                type: 1
+            }
+        ]
         const ButtonMessage = {
             text,
+            footer: '',
+            buttons: Buttons,
+            headerType: 1,
             mentions: [user]
         }
         await this.client.sendMessage(M.from, ButtonMessage)
@@ -639,7 +811,8 @@ export class MessageHandler {
             pkmn.maxSpeed = speed
             pkmn.maxHp = hp
             pkmn.maxDefense = defense
-            if (pkmn.tag === '0') await this.client.DB.updateUser(user, 'companion', 'set', pData.name)
+            if (pkmn.tag === '0')
+                await this.client.DB.user.updateOne({ jid: user }, { $set: { companion: pData.name } })
             party[i] = pkmn
             if (inBattle) {
                 const data = this.pokemonBattleResponse.get(M.from)
@@ -648,7 +821,7 @@ export class MessageHandler {
                     this.pokemonBattleResponse.set(M.from, data)
                 }
             }
-            await this.client.DB.updateUser(user, 'party', 'set', party)
+            await this.client.DB.user.updateOne({ jid: user }, { $set: { party } })
             const buffer = await this.client.utils.getBuffer(pkmn.image)
             return void (await this.client.sendMessage(M.from, {
                 image: buffer,
